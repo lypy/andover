@@ -1,0 +1,10 @@
+[package]
+name = "andover"
+version = "0.1.0"
+authors = ["Elijah Charles <elij@lypy.com>"]
+
+[dependencies]
+serde_json = "1.0.5"
+nix = "0.8.1"
+pnetlink = { git = "https://github.com/lypy/pnetlink" }
+
