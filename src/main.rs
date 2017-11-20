@@ -17,8 +17,7 @@ use pnetlink::packet::route::link::{RTM_NEWLINK, IFLA_LINKINFO, IFLA_NET_NS_FD,
 use pnetlink::packet::netlink::{NetlinkReader, NetlinkRequestBuilder};
 
 use pnetlink::packet::route::RtAttrPacket;
-use pnetlink::packet::route::route::WithPayload;
-use pnetlink::packet::route::route::Nested;
+use pnetlink::packet::route::route::{ToPayload, WithPayload};
 
 const VETH_INFO_PEER: u16 = 1;
 
@@ -53,7 +52,7 @@ fn main() {
     }
 }
 
-fn create_veth() -> Result<(), CniError> {
+fn create_veth() -> Result<(), CniError> { 
     let command = env::var("CNI_COMMAND")?;
 
     if command != "ADD" {
@@ -90,23 +89,24 @@ impl Veth for NetlinkConnection {
         let pifi = {
             IfInfoPacketBuilder::new().set_family(0 /* AF_UNSPEC */).build()
         };
-        let n1 = Nested::InfoAttr(pifi);
-        let n2 = Nested::RtAttr(RtAttrPacket::create_with_payload(IFLA_IFNAME, hname));
+        let n1 = pifi;
+        let n2 = RtAttrPacket::create_with_payload(IFLA_IFNAME, hname);
 
         let ifi = {
-            let info_kind = RtAttrPacket::create_with_payload(IFLA_INFO_KIND, &b"veth"[..]);
-            let mut link_info_data : Vec<&Nested> = Vec::new();
+            let info_kind = RtAttrPacket::create_with_payload(IFLA_INFO_KIND, "veth");
+            let mut link_info_data : Vec<&ToPayload> = Vec::new();
             link_info_data.push(&n1);
             link_info_data.push(&n2);
 
             let info_peer = RtAttrPacket::create_with_payload(VETH_INFO_PEER, &link_info_data[..]);
             let info_data = RtAttrPacket::create_with_payload(IFLA_INFO_DATA, info_peer);
-            let mut link_info = Vec::new();
+            let mut link_info : Vec<&ToPayload> = Vec::new();
             link_info.push(&info_kind);
             link_info.push(&info_data);
 
             IfInfoPacketBuilder::new().
                     set_family(0 /* AF_UNSPEC */).
+//                    set_change(UP).
                     set_flags(UP).
                 append(RtAttrPacket::create_with_payload(IFLA_IFNAME, name)).
                 append(RtAttrPacket::create_with_payload(IFLA_NET_NS_FD, fd)).
